@@ -2,7 +2,7 @@
 
 from typing import Any
 
-from .fetch import FetchResult, fetch_url
+from .fetch import FetchResult, fetch_rendered_url, fetch_url
 from .models import SourceDefinition
 from .sources import validate_official_url
 
@@ -46,4 +46,28 @@ class ConfiguredAdapter:
         )
         validate_official_url(result.url, self.config["official_domains"])
         return result
+
+
+class GenericPlatformAdapter(ConfiguredAdapter):
+    """Runtime adapter for a user-selected platform profile."""
+
+    def __init__(self, config: dict[str, Any]) -> None:
+        self.platform = str(config["platform"])
+        self.config = config
+
+    def fetch_rendered(
+        self, source: SourceDefinition, timeout: int = 30
+    ) -> FetchResult:
+        validate_official_url(source.url, self.config["official_domains"])
+        result = fetch_rendered_url(source.url, timeout=timeout)
+        validate_official_url(result.url, self.config["official_domains"])
+        return result
+
+
+class GenericPlatformAdapter(ConfiguredAdapter):
+    """Runtime adapter for a user-selected platform profile."""
+
+    def __init__(self, config: dict[str, Any]) -> None:
+        self.platform = str(config["platform"])
+        self.config = config
 

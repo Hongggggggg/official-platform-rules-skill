@@ -16,6 +16,7 @@ if str(SCRIPT_DIR) not in sys.path:
 
 from core.clarify import clarify_question
 from core.service import RuleService
+from core.profiles import ProfileStore
 from core.sources import SourceRejected, validate_official_url
 from discover_official_sources import configured_identity
 
@@ -254,6 +255,15 @@ def main() -> int:
     parser.add_argument("--date", default="2026-07-26")
     parser.add_argument("--output-dir", type=Path, default=ROOT / "reports")
     args = parser.parse_args()
+
+    if not ProfileStore(ROOT).list():
+        print(json.dumps({
+            "ok": True,
+            "skipped": True,
+            "reason": "尚无动态平台档案；固定 TikTok/Ozon 语料仅作测试夹具",
+            "corpus": str(args.corpus),
+        }, ensure_ascii=False, indent=2))
+        return 0
 
     payload = load_json(args.corpus)
     services = {

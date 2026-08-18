@@ -16,10 +16,13 @@ if str(SCRIPTS) not in sys.path:
 from core.audit import audit_skill
 from core.clarify import clarify_question
 from core.db import RuleDatabase
+from core.discovery import canonical_url, discover
 from core.fetch import fetch_url
 from core.html_extract import extract_document
 from core.locking import SyncLocked, platform_sync_lock
-from core.models import ExtractedDocument, SourceDefinition
+from core.models import ExtractedDocument, FetchResult, SourceDefinition
+from core.profiles import ProfileStore
+from core.service import RuleService
 from core.sources import SourceRejected, validate_official_url
 
 
@@ -195,7 +198,7 @@ class DatabaseTests(unittest.TestCase):
         first = self.db.status()
         second_migration = self.db.initialize()
         second = self.db.status()
-        self.assertEqual(first["schema_version"], 2)
+        self.assertEqual(first["schema_version"], 3)
         self.assertTrue(second_migration["fts5_v2"])
         self.assertEqual(
             first["table_counts"]["evidence_links"],
@@ -399,12 +402,111 @@ class WorkflowTests(unittest.TestCase):
         self.assertIn("fulfillment", result["missing"])
         self.assertLessEqual(len(result["questions"]), 3)
 
-    def test_skill_audit_passes_and_platforms_are_isolated(self) -> None:
+    def test_skill_audit_passes_without_prebuilt_platforms(self) -> None:
         result = audit_skill(SKILL_ROOT)
         self.assertTrue(result["ok"], result)
-        self.assertNotEqual(
-            result["isolated_namespaces"]["tiktok"],
-            result["isolated_namespaces"]["ozon"],
+        self.assertEqual(result["dynamic_profiles"], [])
+        self.assertTrue(any("onboard" in item for item in result["warnings"]))
+
+    def test_first_use_requires_platform_profile(self) -> None:
+        result = clarify_question("商品能不能卖？", profiles=[])
+        self.assertEqual(result["status"], "needs_clarification")
+        self.assertIn("platform", result["missing"])
+        self.assertIn("选择或输入", result["questions"][0])
+
+    def test_dynamic_profiles_are_stable_and_isolated(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            store = ProfileStore(root)
+            amazon = store.create(
+                platform_name="Amazon", market="US", seller_origin="CN",
+                official_urls=["https://sellercentral.amazon.com/help/"],
+            )
+            tiktok = store.create(
+                platform_name="TikTok Shop", market="US", seller_origin="US",
+                official_urls=["https://seller-us.tiktok.com/university/"],
+            )
+            unknown = store.create(platform_name="Example Mall", market="EU")
+            duplicate = store.create(
+                platform_name="Amazon", market="US", seller_origin="CN",
+                official_urls=["https://sellercentral.amazon.com/help/"],
+            )
+            self.assertEqual(amazon["profile_id"], duplicate["profile_id"])
+            self.assertEqual(
+                len({amazon["profile_id"], tiktok["profile_id"], unknown["profile_id"]}),
+                3,
+            )
+            self.assertEqual(unknown["status"], "needs_official_sources")
+            updated_unknown = store.add_official_urls(
+                unknown["profile_id"],
+                ["https://help.example-mall.test/policies"],
+            )
+            self.assertEqual(updated_unknown["status"], "ready_for_discovery")
+            self.assertEqual(
+                updated_unknown["verified_domains"],
+                ["help.example-mall.test"],
+            )
+            service = RuleService(root, amazon["profile_id"])
+            initialized = service.initialize()
+            self.assertEqual(initialized["migration"]["schema_version"], 3)
+            connection = sqlite3.connect(service.db.path)
+            try:
+                tables = {
+                    row[0]
+                    for row in connection.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table'"
+                    )
+                }
+            finally:
+                connection.close()
+            self.assertTrue(
+                {
+                    "profiles", "discovery_runs", "source_candidates",
+                    "coverage_audits", "update_schedules",
+                }
+                <= tables
+            )
+
+    def test_discovery_accepts_only_verified_domain(self) -> None:
+        seed_html = b"""
+        <html><body>
+          <a href='/policies/prohibited?utm_source=x'>Prohibited products policy</a>
+          <a href='https://help.evil.example/refund'>Refund policy</a>
+        </body></html>
+        """
+
+        def fake_fetch(url: str, **_: object) -> FetchResult:
+            if url.endswith("robots.txt"):
+                body, content_type = b"", "text/plain"
+            elif url.endswith("sitemap.xml"):
+                body, content_type = b"<urlset></urlset>", "application/xml"
+            else:
+                body, content_type = seed_html, "text/html"
+            return FetchResult(
+                url=url, status=200, content_type=content_type, body=body,
+                fetched_at="2026-08-18T00:00:00+00:00",
+            )
+
+        with patch("core.discovery.fetch_url", side_effect=fake_fetch):
+            result = discover(
+                ["https://official.example/help"], {"official.example"},
+                max_pages=8,
+            )
+        accepted = {
+            item["url"]
+            for item in result["candidates"]
+            if item["status"] == "accepted"
+        }
+        pending = {
+            item["url"]
+            for item in result["candidates"]
+            if item["status"] == "pending"
+        }
+        self.assertIn("https://official.example/policies/prohibited", accepted)
+        self.assertIn("https://help.evil.example/refund", pending)
+        self.assertEqual(
+            canonical_url("https://official.example/policy?utm_source=x"),
+            "https://official.example/policy",
         )
 
 

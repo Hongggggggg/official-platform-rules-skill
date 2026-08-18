@@ -2,15 +2,15 @@
   "schema_version": 1,
   "platforms": {
     "tiktok": {
-      "enabled": true,
-      "adapter": "tiktok.adapter:TikTokAdapter",
-      "config": "tiktok-us.json",
+      "enabled": false,
+      "adapter": null,
+      "config": null,
       "data_namespace": "tiktok"
     },
     "ozon": {
-      "enabled": true,
-      "adapter": "ozon.adapter:OzonAdapter",
-      "config": "ozon-crossborder.json",
+      "enabled": false,
+      "adapter": null,
+      "config": null,
       "data_namespace": "ozon"
     },
     "amazon": {

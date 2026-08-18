@@ -3,11 +3,17 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SCRIPT_DIR = ROOT / "scripts"
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from core.profiles import ProfileStore
 
 
 def main() -> int:
@@ -15,16 +21,22 @@ def main() -> int:
         description="将因进程外部中断而没有结束标记的同步记录结算为失败"
     )
     parser.add_argument(
-        "--platform", choices=("tiktok", "ozon", "all"), default="all"
+        "--profile", action="append",
+        help="可重复；省略时处理所有未归档档案",
     )
     args = parser.parse_args()
-    platforms = (
-        ("tiktok", "ozon") if args.platform == "all" else (args.platform,)
-    )
+    store = ProfileStore(ROOT)
+    platforms = args.profile or [
+        item["profile_id"] for item in store.list()
+        if item.get("status") != "archived"
+    ]
     finished_at = datetime.now(timezone.utc).isoformat(timespec="seconds")
     reconciled: dict[str, list[int]] = {}
     for platform in platforms:
-        path = ROOT / "data" / platform / "rules.sqlite3"
+        path = store.profile_dir(platform) / "rules.sqlite3"
+        if not path.exists():
+            reconciled[platform] = []
+            continue
         connection = sqlite3.connect(path)
         try:
             revision_row = connection.execute(
@@ -48,7 +60,7 @@ def main() -> int:
                     """
                     UPDATE sync_runs
                     SET finished_at=?, ok=0, result_json=?,
-                        schema_version=2, database_revision=?
+                        schema_version=3, database_revision=?
                     WHERE id=? AND finished_at IS NULL
                     """,
                     (

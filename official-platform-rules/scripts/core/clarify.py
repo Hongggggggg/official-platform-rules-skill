@@ -28,13 +28,28 @@ def _first_match(text: str, mapping: dict[str, tuple[str, ...]]) -> str | None:
     return None
 
 
-def clarify_question(question: str) -> dict[str, Any]:
+def clarify_question(
+    question: str, profiles: list[dict[str, Any]] | None = None
+) -> dict[str, Any]:
     text = question.strip()
+    available = profiles or []
+    dynamic_patterns = {
+        str(item["profile_id"]): (
+            re.escape(str(item["platform_name"])),
+            re.escape(str(item.get("display_name", ""))),
+        )
+        for item in available
+        if item.get("status") != "archived"
+    }
+    patterns_by_platform = {**PLATFORM_PATTERNS, **dynamic_patterns}
     platform_hits = [
         platform
-        for platform, patterns in PLATFORM_PATTERNS.items()
-        if any(re.search(pattern, text, re.I) for pattern in patterns)
+        for platform, patterns in patterns_by_platform.items()
+        if any(pattern and re.search(pattern, text, re.I) for pattern in patterns)
     ]
+    if not platform_hits:
+        active = [str(item["profile_id"]) for item in available if item.get("active")]
+        platform_hits = active
     platform = platform_hits[0] if len(platform_hits) == 1 else None
     topic = _first_match(text, TOPICS)
     facts: dict[str, str] = {}
@@ -44,7 +59,19 @@ def clarify_question(question: str) -> dict[str, Any]:
         facts["topic"] = topic
 
     lowered = text.lower()
-    if platform == "tiktok":
+    selected_profile = next(
+        (item for item in available if item.get("profile_id") == platform), None
+    )
+    if selected_profile:
+        facts.update(
+            {
+                "market": str(selected_profile["market"]),
+                "identity": str(selected_profile["actor_type"]),
+                "seller_type": str(selected_profile["seller_type"]),
+                "fulfillment": str(selected_profile["fulfillment"]),
+            }
+        )
+    elif platform == "tiktok":
         if re.search(r"\b(us|usa|united states)\b|美国站|美区", lowered):
             facts["market"] = "US"
         if any(word in lowered for word in ("卖家", "seller", "店铺")):
@@ -63,7 +90,11 @@ def clarify_question(question: str) -> dict[str, Any]:
     missing: list[str] = []
     if not platform:
         missing.append("platform")
-        questions.append("你问的是 TikTok Shop 还是 Ozon？")
+        if available:
+            names = "、".join(str(item["display_name"]) for item in available)
+            questions.append(f"请选择已有平台档案（{names}），或新建平台档案。")
+        else:
+            questions.append("尚无平台档案。请先选择或输入要搭建知识库的电商平台。")
     if platform == "tiktok" and "market" not in facts:
         missing.append("market")
         questions.append("具体是 TikTok Shop 哪个国家或站点？")

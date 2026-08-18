@@ -3,11 +3,18 @@ from __future__ import annotations
 import argparse
 import json
 import sqlite3
+import sys
 from pathlib import Path
 from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
+SCRIPT_DIR = ROOT / "scripts"
+if str(SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIR))
+
+from core.profiles import ProfileStore
+
 REQUIRED_TABLES = {
     "applicability_scopes",
     "effective_intervals",
@@ -21,6 +28,11 @@ REQUIRED_TABLES = {
     "snapshots",
     "sources",
     "sync_runs",
+    "profiles",
+    "discovery_runs",
+    "source_candidates",
+    "coverage_audits",
+    "update_schedules",
 }
 NOISE_TITLES = {
     "похоже, нет соединения",
@@ -35,7 +47,7 @@ def scalar(connection: sqlite3.Connection, sql: str) -> Any:
 
 
 def verify(platform: str) -> dict[str, Any]:
-    path = ROOT / "data" / platform / "rules.sqlite3"
+    path = ROOT / "data" / "profiles" / platform / "rules.sqlite3"
     connection = sqlite3.connect(f"file:{path.as_posix()}?mode=ro", uri=True)
     connection.row_factory = sqlite3.Row
     try:
@@ -62,7 +74,7 @@ def verify(platform: str) -> dict[str, Any]:
         ]
         checks = {
             "integrity": scalar(connection, "PRAGMA integrity_check") == "ok",
-            "schema_version": metadata.get("schema_version") == "2",
+            "schema_version": metadata.get("schema_version") == "3",
             "fts5_v2_enabled": metadata.get("fts5_v2") == "true",
             "required_tables": not (REQUIRED_TABLES - tables),
             "current_scope_complete": scalar(
@@ -141,17 +153,25 @@ def verify(platform: str) -> dict[str, Any]:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="验证平台规则知识库 V2")
+    parser = argparse.ArgumentParser(description="验证动态平台规则知识库 V3")
     parser.add_argument(
         "--platform",
         action="append",
-        choices=("tiktok", "ozon"),
-        help="可重复；省略时验证所有已启用平台",
+        help="可重复；省略时验证所有未归档的运行时档案",
     )
     args = parser.parse_args()
-    platforms = args.platform or ["tiktok", "ozon"]
+    store = ProfileStore(ROOT)
+    platforms = args.platform or [
+        item["profile_id"] for item in store.list()
+        if item.get("status") != "archived" and (store.profile_dir(item["profile_id"]) / "rules.sqlite3").exists()
+    ]
     results = [verify(platform) for platform in platforms]
-    payload = {"schema_version": 2, "ok": all(item["ok"] for item in results), "results": results}
+    payload = {
+        "schema_version": 3,
+        "ok": all(item["ok"] for item in results),
+        "results": results,
+        "warning": None if results else "尚无已构建的运行时平台数据库",
+    }
     print(json.dumps(payload, ensure_ascii=False, indent=2))
     return 0 if payload["ok"] else 1
 

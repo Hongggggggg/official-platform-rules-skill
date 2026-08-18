@@ -3,59 +3,58 @@
 from pathlib import Path
 from typing import Any
 
-from .config import load_json, load_platform_config
+from .config import load_platform_config
+from .profiles import ProfileStore
 from .sources import SourceRejected, validate_official_url
 
 
 def audit_skill(root: Path) -> dict[str, Any]:
-    registry = load_json(root / "config" / "platforms.json")
     errors: list[str] = []
     warnings: list[str] = []
     namespaces: dict[str, str] = {}
     enabled: list[str] = []
-    for platform, entry in registry.get("platforms", {}).items():
-        namespace = entry.get("data_namespace")
+    store = ProfileStore(root)
+    profiles = store.list()
+    if not profiles:
+        warnings.append("尚无运行时平台档案；首次使用必须先 onboard")
+    for profile in profiles:
+        profile_id = str(profile.get("profile_id", ""))
+        if not profile_id:
+            errors.append("发现缺少 profile_id 的运行时档案")
+            continue
+        if profile.get("status") == "archived":
+            continue
+        enabled.append(profile_id)
+        namespace = profile_id
         if namespace in namespaces:
-            errors.append(f"数据命名空间重复: {namespace} ({namespaces[namespace]}, {platform})")
-        namespaces[namespace] = platform
-        if not entry.get("enabled"):
-            if entry.get("adapter") or entry.get("config"):
-                warnings.append(f"预留平台 {platform} 已禁用但仍配置了实现")
+            errors.append(f"数据命名空间重复: {namespace}")
+        namespaces[namespace] = str(profile.get("platform_name", profile_id))
+        if not profile.get("verified_domains"):
+            warnings.append(f"{profile_id}: 尚无已核验官方域名")
             continue
-        enabled.append(platform)
         try:
-            config = load_platform_config(root, entry["config"])
+            config_path = store.profile_dir(profile_id) / "sources.json"
+            config = load_platform_config(config_path.parent, config_path.name)
         except Exception as exc:
-            errors.append(f"{platform} 配置无效: {exc}")
+            errors.append(f"{profile_id} 配置无效: {exc}")
             continue
-        if config["platform"] != platform:
-            errors.append(f"{platform} 配置中的 platform 不一致")
+        if config["platform"] != profile_id:
+            errors.append(f"{profile_id} 配置中的 platform 不一致")
         if config["data_namespace"] != namespace:
-            errors.append(f"{platform} 数据命名空间不一致")
+            errors.append(f"{profile_id} 数据命名空间不一致")
         for source in config["sources"]:
             try:
                 validate_official_url(source["url"], config["official_domains"])
             except SourceRejected as exc:
-                errors.append(f"{platform}/{source['source_key']}: {exc}")
-        adapter_module = entry["adapter"].split(":", 1)[0]
-        adapter_path = root / "scripts" / Path(*adapter_module.split("."))
-        adapter_file = adapter_path.with_suffix(".py")
-        if not adapter_file.exists():
-            errors.append(f"{platform} 适配器不存在: {adapter_file}")
-            continue
-        code = adapter_file.read_text(encoding="utf-8-sig").lower()
-        for other in registry["platforms"]:
-            if other != platform and other in enabled and (
-                f"import {other}" in code or f"from {other}" in code
-            ):
-                errors.append(f"{platform} 适配器耦合到 {other}")
-    expected_reserved = {"amazon", "shein"}
-    missing_reserved = sorted(expected_reserved - registry.get("platforms", {}).keys())
-    if missing_reserved:
-        errors.append(f"缺少预留平台: {missing_reserved}")
+                errors.append(f"{profile_id}/{source['source_key']}: {exc}")
+    required = (root / "SKILL.md", root / "agents" / "openai.yaml", root / "scripts" / "cli.py")
+    for path in required:
+        if not path.is_file():
+            errors.append(f"Skill 必需文件不存在: {path}")
     return {
         "ok": not errors,
-        "enabled_platforms": enabled,
+        "dynamic_profiles": enabled,
+        "active_profile": store.active(),
         "isolated_namespaces": namespaces,
         "errors": errors,
         "warnings": warnings,

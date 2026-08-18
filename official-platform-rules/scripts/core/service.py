@@ -1,17 +1,18 @@
 ﻿from __future__ import annotations
 
-import importlib
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-from .config import load_json, load_platform_config
+from .adapter import GenericPlatformAdapter
+from .config import validate_platform_config
 from .db import RuleDatabase
+from .discovery import REQUIRED_TOPICS, discover
 from .html_extract import extract_document
 from .locking import platform_sync_lock
 from .models import SourceDefinition, utc_now
-from .schema_v2 import SCHEMA_VERSION
+from .profiles import ProfileStore
+from .schema_v3 import SCHEMA_VERSION
 from .sources import content_hash, ensure_inside, safe_filename
 
 
@@ -20,26 +21,25 @@ class PlatformError(ValueError):
 
 
 class RuleService:
-    def __init__(self, root: Path, platform: str) -> None:
+    def __init__(self, root: Path, profile_id: str) -> None:
         self.root = root.resolve()
-        registry = load_json(self.root / "config" / "platforms.json")
-        entry = registry.get("platforms", {}).get(platform)
-        if not entry or not entry.get("enabled"):
-            raise PlatformError(f"平台未启用或仅预留: {platform}")
-        self.platform = platform
-        self.entry = entry
-        self.config = load_platform_config(self.root, entry["config"])
-        if self.config["data_namespace"] != entry["data_namespace"]:
-            raise PlatformError("平台注册表与配置的数据命名空间不一致")
-        module_name, class_name = entry["adapter"].split(":", 1)
-        adapter_class = getattr(importlib.import_module(module_name), class_name)
-        self.adapter = adapter_class(self.config)
-        self.data_root = ensure_inside(
-            self.root, self.root / "data" / entry["data_namespace"]
-        )
+        self.profile_store = ProfileStore(self.root)
+        self.profile = self.profile_store.load(profile_id)
+        if self.profile.get("status") == "archived":
+            raise PlatformError(f"平台档案已归档: {profile_id}")
+        if not self.profile.get("verified_domains"):
+            raise PlatformError(
+                "档案尚无已核验官方域名；请先发现并确认至少一个官方 HTTPS 入口"
+            )
+        self.platform = profile_id
+        self.profile_id = profile_id
+        self.config = self.profile_store.load_sources(profile_id)
+        validate_platform_config(self.config)
+        self.adapter = GenericPlatformAdapter(self.config)
+        self.data_root = self.profile_store.profile_dir(profile_id)
         self.db = RuleDatabase(
             self.data_root / "rules.sqlite3",
-            platform=self.platform,
+            platform=self.profile_id,
         )
         self._initialized = False
         self._initialization_result: dict[str, Any] | None = None
@@ -48,6 +48,7 @@ class RuleService:
         if self._initialized and self._initialization_result is not None:
             return self._initialization_result
         migration = self.db.initialize()
+        self.db.upsert_profile_metadata(self.profile)
         sources = self.adapter.sources()
         for source in sources:
             self.db.upsert_source(source)
@@ -62,6 +63,164 @@ class RuleService:
         self._initialized = True
         self._initialization_result = result
         return result
+
+    def _reload_sources(self) -> None:
+        self.config = self.profile_store.load_sources(self.profile_id)
+        validate_platform_config(self.config)
+        self.adapter = GenericPlatformAdapter(self.config)
+        self._initialized = False
+        self._initialization_result = None
+
+    def discover(self, timeout: int = 30, max_pages: int = 1000) -> dict[str, Any]:
+        self.initialize()
+        run_id = self.db.start_discovery("full")
+        try:
+            result = discover(
+                list(self.profile["official_seed_urls"]),
+                set(self.profile["verified_domains"]),
+                timeout=timeout,
+                max_pages=max(1, min(max_pages, 10000)),
+            )
+            for candidate in result["candidates"]:
+                self.db.upsert_source_candidate(candidate)
+            existing = {item["url"]: item for item in self.config["sources"]}
+            for item in result["sources"]:
+                existing[item["url"]] = item
+            self.profile_store.save_sources(
+                self.profile_id,
+                sorted(existing.values(), key=lambda item: item["source_key"]),
+            )
+            self.profile_store.mark_run(self.profile_id, discovery=True)
+            self.profile = self.profile_store.load(self.profile_id)
+            self._reload_sources()
+            payload = {
+                "profile_id": self.profile_id,
+                "discovery_run_id": run_id,
+                **result,
+                "source_count": len(existing),
+                "ok": not result["errors"],
+            }
+            self.db.finish_discovery(
+                run_id,
+                payload["ok"],
+                {
+                    "profile_id": self.profile_id,
+                    "visited": result["visited"],
+                    "truncated": result["truncated"],
+                    "source_count": len(existing),
+                    "errors": result["errors"],
+                    "warnings": result.get("warnings", []),
+                    "ok": payload["ok"],
+                },
+            )
+            return payload
+        except Exception as exc:
+            self.db.finish_discovery(
+                run_id, False, {"error": f"{type(exc).__name__}: {exc}"}
+            )
+            raise
+
+    def build(self, timeout: int = 30, max_pages: int = 1000) -> dict[str, Any]:
+        self.profile["status"] = "building"
+        self.profile_store.save(self.profile)
+        discovery = self.discover(timeout=timeout, max_pages=max_pages)
+        self._reload_sources()
+        sources = self.adapter.sources()
+        priority = {source.source_key for source in sources if source.risk == "high"}
+        high_risk = self.sync(priority, timeout=timeout, mode="initial-high-risk") if priority else None
+        remaining = {source.source_key for source in sources if source.source_key not in priority}
+        normal = self.sync(remaining, timeout=timeout, mode="initial-complete") if remaining else None
+        self.profile_store.mark_run(self.profile_id)
+        coverage = self.coverage(record=True)
+        self.profile = self.profile_store.load(self.profile_id)
+        self.profile["status"] = coverage["status"]
+        self.profile_store.save(self.profile)
+        self.db.upsert_profile_metadata(self.profile)
+        return {
+            "profile_id": self.profile_id,
+            "discovery": discovery,
+            "high_risk_sync": high_risk,
+            "remaining_sync": normal,
+            "coverage": coverage,
+            "ok": bool((not high_risk or high_risk["ok"]) and (not normal or normal["ok"])),
+        }
+
+    def update(self, timeout: int = 30, rediscover: bool | None = None) -> dict[str, Any]:
+        if rediscover is None:
+            rediscover = self.profile_store.is_discovery_due(self.profile_id)
+        discovery_result = self.discover(timeout=timeout, max_pages=1000) if rediscover else None
+        self._reload_sources()
+        sync_result = self.sync(timeout=timeout, mode="daily-incremental")
+        self.profile_store.mark_run(self.profile_id)
+        self.profile = self.profile_store.load(self.profile_id)
+        coverage = self.coverage(record=True)
+        self.profile["status"] = coverage["status"]
+        self.profile_store.save(self.profile)
+        self.db.upsert_profile_metadata(self.profile)
+        return {
+            "profile_id": self.profile_id,
+            "rediscovery": discovery_result,
+            "sync": sync_result,
+            "coverage": coverage,
+            "ok": sync_result["ok"],
+        }
+
+    def coverage(self, record: bool = True) -> dict[str, Any]:
+        self.initialize()
+        status = self.db.status()
+        candidates = self.db.source_candidates()
+        latest_discovery = self.db.latest_discovery()
+        discovery_result = (latest_discovery or {}).get("result", {})
+        sources = status["sources"]
+        topics = sorted({str(item["topic"]) for item in sources if item.get("last_verified_at")})
+        missing = [topic for topic in REQUIRED_TOPICS if topic not in topics]
+        failed = [item for item in sources if item.get("last_error")]
+        pending = [item for item in candidates if item["status"] == "pending"]
+        dynamic_shell = [item for item in candidates if item["status"] == "dynamic_shell"]
+        login_required = [item for item in candidates if item["status"] == "login_required"]
+        rejected = [item for item in candidates if item["status"] == "rejected"]
+        candidate_errors = [item for item in candidates if item["status"] == "error"]
+        fetched = [item for item in sources if item.get("last_verified_at")]
+        now = datetime.now(timezone.utc)
+        stale: list[str] = []
+        for item in fetched:
+            threshold = self.config["freshness"][
+                "high_risk_hours" if item["risk"] == "high" else "normal_hours"
+            ]
+            parsed = datetime.fromisoformat(item["last_verified_at"].replace("Z", "+00:00"))
+            if (now - parsed).total_seconds() / 3600 > threshold:
+                stale.append(item["source_key"])
+        discovery_truncated = bool(discovery_result.get("truncated", False))
+        discovery_errors = list(discovery_result.get("errors", []))
+        discovery_ok = bool(latest_discovery and latest_discovery.get("ok"))
+        complete = (
+            bool(sources) and discovery_ok and not discovery_truncated
+            and not discovery_errors and not missing and not failed
+            and not pending and not stale
+        )
+        report = {
+            "profile_id": self.profile_id,
+            "status": "complete" if complete else "partial",
+            "discovered": len(candidates),
+            "accepted": sum(item["status"] not in {"pending", "rejected"} for item in candidates),
+            "fetched": len(fetched),
+            "pending_review": len(pending),
+            "failed": len(failed),
+            "dynamic_shell": len(dynamic_shell),
+            "login_required": len(login_required),
+            "rejected": len(rejected),
+            "candidate_errors": len(candidate_errors),
+            "discovery_truncated": discovery_truncated,
+            "discovery_errors": discovery_errors,
+            "stale": stale,
+            "covered_topics": topics,
+            "missing_topics": missing,
+            "truly_latest": complete,
+            "limitations": [] if complete else ["未达到全面性或新鲜度门槛，不得声称全面或最新"],
+        }
+        if record:
+            report["coverage_audit_id"] = self.db.record_coverage(report)
+        return report
 
     def _snapshot_path(self, source: SourceDefinition, fetched_at: str, body: bytes) -> Path:
         date_part = fetched_at[:10]
@@ -133,8 +292,19 @@ class RuleService:
                         last_modified=fetched.last_modified,
                     )
                     results.append(result)
+                    self.db.mark_candidate_status(source.url, "fetched")
                     continue
-                document = extract_document(fetched.body, fetched.content_type)
+                try:
+                    document = extract_document(fetched.body, fetched.content_type)
+                except ValueError as extraction_error:
+                    message = str(extraction_error)
+                    if not any(
+                        marker in message
+                        for marker in ("动态空壳", "正文不足", "没有可用")
+                    ):
+                        raise
+                    fetched = self.adapter.fetch_rendered(source, timeout=timeout)
+                    document = extract_document(fetched.body, fetched.content_type)
                 snapshot = self._snapshot_path(source, fetched.fetched_at, fetched.body)
                 if self.db.latest_snapshot_hash(source.source_key) != content_hash(document.text):
                     snapshot.parent.mkdir(parents=True, exist_ok=True)
@@ -165,9 +335,26 @@ class RuleService:
                     snapshot_id=int(result["snapshot_id"]),
                 )
                 results.append(result)
+                self.db.mark_candidate_status(source.url, "fetched")
             except Exception as exc:  # each platform/source must fail independently
                 message = f"{type(exc).__name__}: {exc}"
                 self.db.record_source_error(source.source_key, message)
+                lowered = message.lower()
+                if any(
+                    marker in lowered
+                    for marker in ("登录", "login", "captcha", "验证码")
+                ):
+                    candidate_status = "login_required"
+                elif any(
+                    marker in lowered
+                    for marker in ("动态", "正文不足", "empty", "shell")
+                ):
+                    candidate_status = "dynamic_shell"
+                else:
+                    candidate_status = "error"
+                self.db.mark_candidate_status(
+                    source.url, candidate_status, message
+                )
                 self.db.finish_fetch(
                     fetch_run_id,
                     outcome="error",
@@ -200,23 +387,15 @@ class RuleService:
 
     def _platform_conflict(self, question: str) -> str | None:
         lowered = question.lower()
-        aliases = {
-            "tiktok": ("tiktok", "tik tok"),
-            "ozon": ("ozon",),
-            "amazon": ("amazon", "亚马逊"),
-            "shopee": ("shopee", "虾皮"),
-            "shein": ("shein",),
-        }
-        selected_present = any(
-            alias in lowered for alias in aliases.get(self.platform, ())
-        )
-        if selected_present:
+        selected = str(self.profile["platform_name"]).lower()
+        if selected in lowered:
             return None
-        for platform, values in aliases.items():
-            if platform == self.platform:
+        for item in self.profile_store.list():
+            if item["profile_id"] == self.profile_id:
                 continue
-            if any(alias in lowered for alias in values):
-                return platform
+            name = str(item["platform_name"]).lower()
+            if name and name in lowered:
+                return str(item["profile_id"])
         return None
 
     def import_official_file(
@@ -304,6 +483,9 @@ class RuleService:
         as_of_date: str | None = None,
     ) -> dict[str, Any]:
         self.initialize()
+        overdue_update = None
+        if refresh_stale and self.profile_store.is_update_due(self.profile_id):
+            overdue_update = self.update(timeout=timeout)
         conflicting_platform = self._platform_conflict(question)
         if conflicting_platform:
             return {
@@ -352,6 +534,8 @@ class RuleService:
             "rules": rules,
             "stale_source_keys": sorted(stale_keys),
             "refresh": refresh_result,
+            "overdue_update": overdue_update,
+            "knowledge_base": self.coverage(record=False),
         }
 
     def digest(self, since_days: int) -> dict[str, Any]:
@@ -365,7 +549,15 @@ class RuleService:
 
     def status(self) -> dict[str, Any]:
         self.initialize()
-        return {"platform": self.platform, **self.db.status()}
+        return {
+            "profile_id": self.profile_id,
+            "platform_name": self.profile["platform_name"],
+            "profile_status": self.profile.get("status"),
+            "update_due": self.profile_store.is_update_due(self.profile_id),
+            "discovery_due": self.profile_store.is_discovery_due(self.profile_id),
+            "knowledge_base": self.coverage(record=False),
+            **self.db.status(),
+        }
 
     def review(self) -> dict[str, Any]:
         self.initialize()

@@ -16,6 +16,7 @@ if str(SCRIPT_DIR) not in sys.path:
 
 from core.config import load_platform_config
 from core.service import RuleService
+from core.profiles import ProfileStore
 
 
 def normalize(value: str) -> str:
@@ -307,6 +308,14 @@ def main() -> int:
         default=SKILL_ROOT / "reports",
     )
     args = parser.parse_args()
+    if not ProfileStore(SKILL_ROOT).list():
+        print(json.dumps({
+            "ok": True,
+            "skipped": True,
+            "reason": "尚无动态平台档案；固定 TikTok/Ozon 语料仅作测试夹具",
+            "cases_file": str(args.cases.resolve()),
+        }, ensure_ascii=False, indent=2))
+        return 0
     report = run(args.cases.resolve(), args.output_dir.resolve())
     print(json.dumps({
         "summary": report["summary"],

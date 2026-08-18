@@ -1,9 +1,10 @@
 # Official Platform Rules Skill
 
-一个可安装的 Codex Skill，只依据官方一手来源采集、核验、版本化和检索 TikTok Shop 与 Ozon 平台规则。
+一个可安装的 Codex Skill。首次使用先选择任意电商平台，再动态发现官方来源、建立本地知识库并持续更新。安装包不附带任何平台的成品规则数据。
 
 ## 能力边界
 
+- 为任意平台和市场创建隔离档案，发现官方 sitemap、目录和站内规则页。
 - 管理官方来源、证据快照、适用市场与主体、生效时间和最后核验时间。
 - 支持当前规则查询、历史时点查询、规则冲突、过期风险、人工复核和可追溯引用。
 - 不用于选品、销量、竞品、第三方资讯或法律意见。
@@ -37,7 +38,7 @@ Copy-Item -Recurse -Force `
 在 Codex 中使用：
 
 ```text
-使用 $official-platform-rules 查询并核验 TikTok Shop 美国站的平台规则。
+使用 $official-platform-rules 为我选择的电商平台搭建官方规则知识库。
 ```
 
 ## 快速验证
@@ -46,8 +47,11 @@ Copy-Item -Recurse -Force `
 Set-Location .\official-platform-rules
 python -m unittest discover -s tests -v
 python scripts/cli.py audit
-python scripts/cli.py init --platform tiktok
-python scripts/cli.py init --platform ozon
+python scripts/cli.py profiles
+python scripts/cli.py onboard --platform-name PLATFORM --market MARKET --official-url OFFICIAL_HTTPS_URL
+python scripts/cli.py discover --profile PROFILE_ID
+python scripts/cli.py build --profile PROFILE_ID
+python scripts/cli.py coverage --profile PROFILE_ID
 ```
 
 同步官方规则需要网络访问；无需网络的初始化、查询与审计可直接在本地运行。详细数据库、迁移和恢复设计见 [ARCHITECTURE.md](official-platform-rules/ARCHITECTURE.md)。

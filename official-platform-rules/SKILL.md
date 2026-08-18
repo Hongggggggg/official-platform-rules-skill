@@ -1,41 +1,42 @@
 ---
 name: official-platform-rules
-description: 仅依据官方来源查询、核验并持续跟踪 TikTok Shop 与 Ozon 平台规则。用户询问禁限售、商品与内容要求、上架运营、广告、达人、履约、订单、退款退货、费用、处罚、申诉、合同或官方政策变化时使用；问题范围不明确时必须多轮澄清。不得用于市场销量、选品、竞品或第三方资讯分析。
+description: 为任意电商平台动态搭建、更新和查询仅依据官方一手来源的本地规则知识库。首次询问某平台禁限售、入驻、上架、广告内容、履约、退款、费用、处罚、申诉、合同或政策变化时使用；也用于创建平台档案、发现官方知识中心、审计覆盖率和每日增量更新。不得用于选品、销量、竞品或第三方资讯结论。
 ---
 
-# 官方平台规则知识库
+# 动态官方平台规则知识库
 
-仅使用已验证的官方来源回答 TikTok Shop 与 Ozon 规则问题。绝不把搜索摘要、第三方文章或模型记忆当作规则证据。
+不携带任何平台的成品规则库。先让用户选择平台与适用范围，再基于已核验官方入口动态建库。绝不把搜索摘要、第三方文章或模型记忆当作规则证据。
 
 ## 执行流程
 
-1. 读取 [clarification.md](references/clarification.md)，判断平台、市场、身份、履约方式、类目、问题类型和事件日期是否足以唯一确定适用规则。
-2. 信息不足时每轮只问 1～3 个最关键问题。继续确认，直到问题清楚；不得猜测缺失前提。
-3. 确认 TikTok Shop 后读取 [tiktok-scope.md](references/tiktok-scope.md)；确认 Ozon 后读取 [ozon-scope.md](references/ozon-scope.md)。不得同时读取另一平台资料，除非用户明确要求跨平台比较。
-4. 读取 [evidence-policy.md](references/evidence-policy.md)，使用 `scripts/cli.py` 查询当前有效规则。需要更新时先运行目标平台的 `sync`。
-5. 读取 [answer-format.md](references/answer-format.md)，按固定结构回答并附官方 URL、适用范围、发布日期或生效日期、最后核验时间。
-6. 执行同步、正式导出导入、复核或调度时读取 [operations.md](references/operations.md)。
+1. 读取 [onboarding.md](references/onboarding.md)。先运行 `profiles`；没有档案时必须询问平台、市场、身份、注册地、履约与官方入口，不得直接回答规则。
+2. 用户未提供官方入口时，使用网络搜索发现平台主站与帮助中心；核实平台归属后才将 HTTPS URL 传给 `onboard` 或 `profiles --add-official-url`。
+3. 运行 `discover` 枚举 robots.txt、sitemap、目录和站内链接。同一已核验域名可自动接纳；新域名必须复核。
+4. 运行 `build` 完成高风险优先的首次建库，再运行 `coverage`。状态为 `partial` 时明确展示缺口，不得声称“全面”或“最新”。
+5. 回答前读取 [clarification.md](references/clarification.md) 和 [evidence-policy.md](references/evidence-policy.md)；使用 `query --profile`。历史事件必须传入 `--as-of`。
+6. 按 [answer-format.md](references/answer-format.md) 输出结论、适用范围、官方 URL、生效日期、最后核验时间与知识库覆盖状态。
+7. 更新、导入、复核或调度时读取 [operations.md](references/operations.md)。
 
 ## 命令
 
 从本 Skill 目录运行：
 
 ```text
-python scripts/cli.py init --platform tiktok
-python scripts/cli.py init --platform ozon
-python scripts/cli.py sync --platform tiktok
-python scripts/cli.py sync --platform ozon
-python scripts/cli.py import-official --platform ozon --source SOURCE_KEY --file imports/ozon/export.html
+python scripts/cli.py profiles
+python scripts/cli.py onboard --platform-name PLATFORM --market MARKET --official-url https://official.example/
+python scripts/cli.py profiles --profile PROFILE_ID --add-official-url https://help.official.example/
+python scripts/cli.py discover --profile PROFILE_ID
+python scripts/cli.py build --profile PROFILE_ID
+python scripts/cli.py coverage --profile PROFILE_ID
+python scripts/cli.py update --profile PROFILE_ID
+python scripts/cli.py update --all-due
+python scripts/cli.py import-official --profile PROFILE_ID --source SOURCE_KEY --file imports/PROFILE_ID/export.html
 python scripts/cli.py clarify --question "用户原问题"
-python scripts/cli.py query --platform tiktok --question "已经澄清的问题"
-python scripts/cli.py query --platform ozon --question "已经澄清的问题"
-python scripts/cli.py query --platform tiktok --question "历史事件问题" --as-of 2026-01-15
-python scripts/cli.py digest --platform tiktok --since-days 1
-python scripts/cli.py digest --platform ozon --since-days 1
-python scripts/cli.py history --platform tiktok --rule-key RULE_KEY
-python scripts/cli.py status --platform ozon
-python scripts/cli.py review --platform ozon
-python scripts/cli.py review-decide --platform ozon --rule-version-id 123 --decision approve --reason "官方日期与范围已人工确认" --reviewer "name"
+python scripts/cli.py query --profile PROFILE_ID --question "已经澄清的问题"
+python scripts/cli.py query --profile PROFILE_ID --question "历史事件问题" --as-of 2026-01-15
+python scripts/cli.py digest --profile PROFILE_ID --since-days 1
+python scripts/cli.py history --profile PROFILE_ID --rule-key RULE_KEY
+python scripts/cli.py review --profile PROFILE_ID
 python scripts/cli.py audit
 ```
 
@@ -43,11 +44,11 @@ python scripts/cli.py audit
 
 ## 强制约束
 
-- 普通问答一次只查询一个平台数据库。跨平台比较必须分别查询，再并列呈现。
-- TikTok 与 Ozon 的配置、采集器、数据库、快照、复核队列和变更记录互相独立。
+- 普通问答一次只查询一个平台档案数据库。跨平台比较必须分别查询，再并列呈现。
+- 所有平台档案的来源清单、数据库、快照、锁、复核队列和更新记录必须隔离。
 - 证据不足时明确回答“官方资料暂未确认”，不得用第三方内容补全。
 - 规则超过其新鲜度阈值时先定向同步；同步失败时展示最后核验时间，不得声称“最新”。
-- 不创建定时任务；没有用户问题或明确同步请求时保持不动。
+- 默认每日 03:00（Asia/Shanghai）增量更新，每 7 天重新发现官方目录。只有用户确认后才创建外部调度；否则每次使用时补做逾期更新。
 - 涉及历史事件时必须传入 `--as-of YYYY-MM-DD`，不得用当前规则替代事件发生时规则。
 - 用户纠正前提后废弃旧检索结果，从澄清步骤重新开始。
 - 不保存 Cookie、Token、密码或浏览器凭证。登录后官方内容只允许通过用户授权的可见页面或正式导出导入。

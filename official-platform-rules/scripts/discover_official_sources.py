@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+"""Compatibility helpers for legacy fixtures; production discovery is profile-driven."""
+
 import argparse
 import html
 import json
@@ -11,6 +13,9 @@ from html.parser import HTMLParser
 from pathlib import Path
 from typing import Iterable
 from urllib.parse import parse_qs, urljoin, urlparse, urlunparse
+
+from core.profiles import ProfileStore
+from core.service import RuleService
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -240,22 +245,35 @@ def build_payload() -> dict:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
+    parser.add_argument("--profile")
+    parser.add_argument("--timeout", type=int, default=30)
+    parser.add_argument("--max-pages", type=int, default=1000)
     parser.add_argument("--date", default=DEFAULT_DATE)
     parser.add_argument("--output-dir", type=Path, default=ROOT / "reports")
     args = parser.parse_args()
-    payload = build_payload()
+    store = ProfileStore(ROOT)
+    profile_id = args.profile or store.active()
+    if not profile_id:
+        print(json.dumps({"ok": False, "error": "尚无平台档案；请先运行 cli.py onboard"}, ensure_ascii=False, indent=2))
+        return 2
+    payload = RuleService(ROOT, profile_id).discover(
+        timeout=args.timeout, max_pages=args.max_pages
+    )
     args.output_dir.mkdir(parents=True, exist_ok=True)
-    json_path = args.output_dir / f"official-source-discovery-{args.date}.json"
-    md_path = args.output_dir / f"official-source-discovery-{args.date}.md"
+    json_path = args.output_dir / f"official-source-discovery-{profile_id}-{args.date}.json"
     json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    md_path.write_text(markdown_report(payload), encoding="utf-8")
     print(
         json.dumps(
             {
-                "ok": True,
+                "ok": payload.get("ok", False),
                 "json": str(json_path),
-                "markdown": str(md_path),
-                "summary": payload["summary"]["platforms"],
+                "profile_id": profile_id,
+                "visited": payload.get("visited", 0),
+                "source_count": payload.get("source_count", 0),
+                "pending_review": sum(
+                    item.get("status") == "pending"
+                    for item in payload.get("candidates", [])
+                ),
             },
             ensure_ascii=False,
             indent=2,

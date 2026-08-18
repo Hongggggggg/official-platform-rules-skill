@@ -18,6 +18,7 @@ from .schema_v2 import (
     normalize_search_text,
     upsert_scope,
 )
+from .schema_v3 import SCHEMA_VERSION as DATABASE_SCHEMA_VERSION, migrate_v3
 from .sources import content_hash
 
 
@@ -366,7 +367,10 @@ class RuleDatabase:
                 connection.execute(
                     "INSERT OR REPLACE INTO metadata(key, value) VALUES('fts5', 'false')"
                 )
-            result = migrate_v2(connection, self.platform)
+            v2_result = migrate_v2(connection, self.platform)
+            result = migrate_v3(connection)
+            result["v2_migration"] = v2_result
+            result["fts5_v2"] = v2_result["fts5_v2"]
             result["quality_cleanup"] = self._quarantine_known_noise(connection)
             return result
 
@@ -496,6 +500,151 @@ class RuleDatabase:
         with _connect(self.path) as connection:
             return self._revision(connection)
 
+    def upsert_profile_metadata(self, profile: dict[str, Any]) -> None:
+        schedule = profile["schedule"]
+        with _connect(self.path) as connection:
+            connection.execute(
+                """
+                INSERT INTO profiles(
+                    profile_id, platform_name, display_name, market,
+                    seller_origin, actor_type, seller_type, fulfillment,
+                    timezone, daily_update_time, status, created_at, updated_at
+                ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(profile_id) DO UPDATE SET
+                    display_name=excluded.display_name,
+                    status=excluded.status,
+                    updated_at=excluded.updated_at
+                """,
+                (
+                    profile["profile_id"], profile["platform_name"],
+                    profile["display_name"], profile["market"],
+                    profile["seller_origin"], profile["actor_type"],
+                    profile["seller_type"], profile["fulfillment"],
+                    schedule["timezone"], schedule["daily_update_time"],
+                    profile["status"], profile["created_at"], profile["updated_at"],
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO update_schedules(
+                    profile_id, timezone, daily_update_time, daily_enabled,
+                    weekly_rediscovery_day, last_update_at,
+                    last_discovery_at, updated_at
+                ) VALUES(?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(profile_id) DO UPDATE SET
+                    timezone=excluded.timezone,
+                    daily_update_time=excluded.daily_update_time,
+                    daily_enabled=excluded.daily_enabled,
+                    weekly_rediscovery_day=excluded.weekly_rediscovery_day,
+                    last_update_at=excluded.last_update_at,
+                    last_discovery_at=excluded.last_discovery_at,
+                    updated_at=excluded.updated_at
+                """,
+                (
+                    profile["profile_id"], schedule["timezone"],
+                    schedule["daily_update_time"],
+                    int(schedule.get("daily_enabled", True)),
+                    int(schedule.get("weekly_rediscovery_day", 6)),
+                    schedule.get("last_update_at"),
+                    schedule.get("last_discovery_at"), utc_now(),
+                ),
+            )
+
+    def start_discovery(self, mode: str) -> int:
+        with _connect(self.path) as connection:
+            cursor = connection.execute(
+                "INSERT INTO discovery_runs(started_at, mode) VALUES(?, ?)",
+                (utc_now(), mode),
+            )
+            return int(cursor.lastrowid)
+
+    def finish_discovery(self, run_id: int, ok: bool, result: dict[str, Any]) -> None:
+        with _connect(self.path) as connection:
+            connection.execute(
+                """
+                UPDATE discovery_runs
+                SET finished_at=?, ok=?, result_json=? WHERE id=?
+                """,
+                (utc_now(), int(ok), json.dumps(result, ensure_ascii=False), run_id),
+            )
+
+    def latest_discovery(self) -> dict[str, Any] | None:
+        with _connect(self.path) as connection:
+            row = connection.execute(
+                "SELECT * FROM discovery_runs ORDER BY id DESC LIMIT 1"
+            ).fetchone()
+        if row is None:
+            return None
+        result = dict(row)
+        try:
+            result["result"] = json.loads(result.get("result_json") or "{}")
+        except json.JSONDecodeError:
+            result["result"] = {}
+        return result
+
+    def upsert_source_candidate(self, candidate: dict[str, Any]) -> None:
+        now = utc_now()
+        with _connect(self.path) as connection:
+            connection.execute(
+                """
+                INSERT INTO source_candidates(
+                    url, canonical_url, domain, title, topic, risk,
+                    source_type, provenance, status, reason,
+                    first_seen_at, last_seen_at
+                ) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(url) DO UPDATE SET
+                    canonical_url=excluded.canonical_url,
+                    title=excluded.title,
+                    topic=excluded.topic,
+                    risk=excluded.risk,
+                    source_type=excluded.source_type,
+                    provenance=excluded.provenance,
+                    status=excluded.status,
+                    reason=excluded.reason,
+                    last_seen_at=excluded.last_seen_at
+                """,
+                (
+                    candidate["url"], candidate["canonical_url"],
+                    candidate["domain"], candidate.get("title", ""),
+                    candidate["topic"], candidate["risk"],
+                    candidate["source_type"], candidate["provenance"],
+                    candidate["status"], candidate.get("reason"), now, now,
+                ),
+            )
+
+    def source_candidates(self) -> list[dict[str, Any]]:
+        with _connect(self.path) as connection:
+            return [
+                dict(row)
+                for row in connection.execute(
+                    "SELECT * FROM source_candidates ORDER BY status, topic, url"
+                ).fetchall()
+            ]
+
+    def mark_candidate_status(
+        self, url: str, status: str, reason: str | None = None
+    ) -> None:
+        with _connect(self.path) as connection:
+            connection.execute(
+                """
+                UPDATE source_candidates
+                SET status=?, reason=?, last_seen_at=?
+                WHERE url=? OR canonical_url=?
+                """,
+                (status, reason, utc_now(), url, url),
+            )
+
+    def record_coverage(self, report: dict[str, Any]) -> int:
+        with _connect(self.path) as connection:
+            cursor = connection.execute(
+                """
+                INSERT INTO coverage_audits(audited_at, status, report_json)
+                VALUES(?, ?, ?)
+                """,
+                (utc_now(), report["status"], json.dumps(report, ensure_ascii=False)),
+            )
+            return int(cursor.lastrowid)
+
     def start_sync(
         self, mode: str, source_keys: Iterable[str] | None = None
     ) -> int:
@@ -509,7 +658,7 @@ class RuleDatabase:
                 (
                     utc_now(),
                     mode,
-                    SCHEMA_VERSION,
+                    DATABASE_SCHEMA_VERSION,
                     json.dumps(sorted(source_keys or ()), ensure_ascii=False),
                 ),
             )
@@ -1651,6 +1800,9 @@ class RuleDatabase:
                     "evidence_links",
                     "fetch_runs",
                     "review_decisions",
+                    "source_candidates",
+                    "coverage_audits",
+                    "discovery_runs",
                 )
             }
         return {
