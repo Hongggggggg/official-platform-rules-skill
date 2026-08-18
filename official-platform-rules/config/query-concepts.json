@@ -1,0 +1,83 @@
+{
+  "schema_version": 2,
+  "description": "V2可维护检索词典；仅用于证据召回加权，不构成规则答案。",
+  "concepts": [
+    {
+      "phrases": ["历史规则", "当时规则", "事件发生时", "as of", "historical rule"],
+      "terms": ["effective", "published", "version", "superseded"],
+      "titles": ["effective", "version"]
+    },
+    {
+      "phrases": ["禁售", "禁止销售", "不能卖", "prohibited"],
+      "terms": ["prohibited", "products"],
+      "sources": ["prohibited-products-policy"],
+      "titles": ["prohibited products"]
+    },
+    {
+      "phrases": ["限售", "类目资质", "restricted", "资格中心"],
+      "terms": ["restricted", "qualification", "category"],
+      "sources": ["restricted-products-policy", "category-qualification-guide"],
+      "titles": ["restricted products", "qualification"]
+    },
+    {
+      "phrases": ["发货时效", "承运商扫描", "dispatch sla", "in transit"],
+      "terms": ["dispatch", "sla", "carrier", "business days", "in transit"],
+      "sources": ["fulfillment-policy", "customer-order-shipping"],
+      "titles": ["dispatching an order", "service level agreements"]
+    },
+    {
+      "phrases": ["regular order", "scanned by the carrier", "carrier scan"],
+      "terms": ["dispatch", "carrier", "scanned", "business days", "regular"],
+      "sources": ["fulfillment-policy"],
+      "titles": ["dispatching an order", "service level agreements"]
+    },
+    {
+      "phrases": ["哪一级类目资质", "qualification level applies to pre-owned"],
+      "terms": ["category", "level", "qualification", "pre-owned", "luxury", "footwear"],
+      "sources": ["restricted-products-policy"],
+      "titles": ["category-level qualification"]
+    },
+    {
+      "phrases": ["退货", "退款", "return", "refund"],
+      "terms": ["return", "refund", "requests"],
+      "sources": ["returns-refunds-replacements", "realfbs-returns", "realfbs-refunds"],
+      "titles": ["returnable products", "returns", "refunds"]
+    },
+    {
+      "phrases": ["处罚", "封店", "冻结", "violation", "enforcement"],
+      "terms": ["enforcement", "violation", "suspension", "appeal"],
+      "sources": ["seller-enforcement-policy", "blocking-reasons"],
+      "titles": ["enforcement", "blocking", "appeal"]
+    },
+    {
+      "phrases": ["enforcement actions"],
+      "terms": ["enforcement", "actions", "violation", "appeal"],
+      "sources": ["seller-enforcement-policy"],
+      "titles": ["enforcement actions"]
+    },
+    {
+      "phrases": ["包装", "包裹尺寸", "packaging", "package dimensions"],
+      "terms": ["packaging", "package", "label", "barcode", "упаковк", "размер"],
+      "sources": ["packaging-update", "partner-delivery", "realfbs-order-packaging"],
+      "titles": ["packaging", "упаковк"]
+    },
+    {
+      "phrases": ["费用", "佣金", "结算", "commission", "settlement"],
+      "terms": ["fees", "commission", "settlement", "payment"],
+      "sources": ["seller-terms-us", "ozon-fees-tariffs", "sales-fees", "finance-settlements"],
+      "titles": ["fees", "commissions", "settlements"]
+    },
+    {
+      "phrases": ["达人", "创作者", "creator", "affiliate"],
+      "terms": ["creator", "affiliate", "eligibility", "followers"],
+      "sources": ["creator-eligibility", "creator-enforcement-policy"],
+      "titles": ["creator", "eligibility"]
+    },
+    {
+      "phrases": ["广告素材", "广告文字", "落地页", "advertising materials", "ad text", "landing page", "moderation time"],
+      "terms": ["advertising", "banner", "landing page", "redirect", "moderation", "currency", "language"],
+      "sources": ["advertising-policies", "display-advertising"],
+      "titles": ["advertising policies", "requirements for advertising materials"]
+    }
+  ]
+}

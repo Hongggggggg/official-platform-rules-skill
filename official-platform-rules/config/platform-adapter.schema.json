@@ -1,0 +1,73 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Official platform rule adapter configuration",
+  "type": "object",
+  "required": ["schema_version", "platform", "display_name", "market", "seller_origin", "data_namespace", "official_domains", "freshness", "scope_defaults", "sources"],
+  "properties": {
+    "schema_version": {"const": 2},
+    "platform": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$"},
+    "display_name": {"type": "string", "minLength": 1},
+    "market": {"type": "string", "minLength": 1},
+    "seller_origin": {"type": "string", "minLength": 1},
+    "data_namespace": {"type": "string", "pattern": "^[a-z][a-z0-9_-]*$"},
+    "official_domains": {"type": "array", "minItems": 1, "uniqueItems": true, "items": {"type": "string", "minLength": 3}},
+    "freshness": {
+      "type": "object",
+      "required": ["high_risk_hours", "normal_hours"],
+      "properties": {
+        "high_risk_hours": {"type": "integer", "minimum": 1},
+        "normal_hours": {"type": "integer", "minimum": 1}
+      },
+      "additionalProperties": false
+    },
+    "scope_defaults": {
+      "type": "object",
+      "required": ["market", "seller_origin", "actor_type", "seller_type", "fulfillment"],
+      "properties": {
+        "market": {"type": "string"},
+        "seller_origin": {"type": "string"},
+        "actor_type": {"type": "string"},
+        "seller_type": {"type": "string"},
+        "shop_type": {"type": "string"},
+        "fulfillment": {"type": "string"},
+        "category": {"type": "string"},
+        "program": {"type": "string"},
+        "order_state": {"type": "string"}
+      },
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["source_key", "canonical_rule_key", "url", "source_type", "topic", "risk"],
+        "properties": {
+          "source_key": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]*$"},
+          "canonical_rule_key": {"type": "string", "minLength": 3},
+          "url": {"type": "string", "pattern": "^https://"},
+          "source_type": {"enum": ["contract", "policy", "specific_rule", "guide", "news"]},
+          "topic": {"type": "string", "minLength": 1},
+          "risk": {"enum": ["high", "normal"]},
+          "scope": {
+            "type": "object",
+            "properties": {
+              "market": {"type": "string"},
+              "seller_origin": {"type": "string"},
+              "actor_type": {"type": "string"},
+              "seller_type": {"type": "string"},
+              "shop_type": {"type": "string"},
+              "fulfillment": {"type": "string"},
+              "category": {"type": "string"},
+              "program": {"type": "string"},
+              "order_state": {"type": "string"}
+            },
+            "additionalProperties": false
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}
+

@@ -1,0 +1,300 @@
+﻿{
+    "schema_version":  2,
+    "platform":  "ozon",
+    "display_name":  "Ozon Cross-border",
+    "market":  "RU_CIS",
+    "seller_origin":  "CN_CROSS_BORDER",
+    "default_language":  "en",
+    "data_namespace":  "ozon",
+    "official_domains":  [
+                             "docs.ozon.com",
+                             "global-help.ozon.com",
+                             "seller.ozon.ru"
+                         ],
+    "freshness":  {
+                      "high_risk_hours":  24,
+                      "normal_hours":  168
+                  },
+    "scope_defaults":  {
+                           "market":  "RU_CIS",
+                           "seller_origin":  "CN_CROSS_BORDER",
+                           "actor_type":  "seller",
+                           "seller_type":  "cross_border",
+                           "fulfillment":  "FBP_OR_REALFBS"
+                       },
+    "sources":  [
+                    {
+                        "source_key":  "product-management",
+                        "canonical_rule_key":  "listing.product",
+                        "url":  "https://docs.ozon.com/global/en/products/?country=CN",
+                        "source_type":  "guide",
+                        "topic":  "商品内容与上架",
+                        "risk":  "normal",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "all"
+                                  }
+                    },
+                    {
+                        "source_key":  "partner-delivery",
+                        "canonical_rule_key":  "fulfillment.partner-delivery",
+                        "url":  "https://docs.ozon.com/global/en/fulfillment/rfbs/logistic-settings/partner-delivery-ozon/?country=CN",
+                        "source_type":  "specific_rule",
+                        "topic":  "履约",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "FBP_OR_REALFBS"
+                                  }
+                    },
+                    {
+                        "source_key":  "fulfillment-home",
+                        "canonical_rule_key":  "fulfillment.general",
+                        "url":  "https://docs.ozon.com/global/en/fulfillment/?country=CN",
+                        "source_type":  "guide",
+                        "topic":  "订单与售后",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "all"
+                                  }
+                    },
+                    {
+                        "source_key":  "promotions",
+                        "canonical_rule_key":  "promotion.general",
+                        "url":  "https://docs.ozon.com/global/promotion/promotions/promo/?country=CN",
+                        "source_type":  "guide",
+                        "topic":  "价格与促销",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "all"
+                                  }
+                    },
+                    {
+                        "source_key":  "display-advertising",
+                        "canonical_rule_key":  "ads.display",
+                        "url":  "https://docs.ozon.com/global/en/promotion/media-advertising/requirements-to-advertising-materials/?country=CN",
+                        "source_type":  "specific_rule",
+                        "topic":  "广告",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "all"
+                                  }
+                    },
+                    {
+                        "source_key":  "packaging-update",
+                        "canonical_rule_key":  "fulfillment.packaging",
+                        "url":  "https://seller.ozon.ru/media/news/fbo-i-fbs-gde-smotret-trebovaniya-k-upakovke/?__rr=1",
+                        "source_type":  "news",
+                        "topic":  "包装与处罚",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "all",
+                                      "fulfillment":  "FBO_FBS"
+                                  }
+                    },
+                    {
+                        "source_key":  "crossborder-contract",
+                        "canonical_rule_key":  "legal.crossborder-contract",
+                        "url":  "https://docs.ozon.com/global/en/contracts-for-sellers/dogovor/?country=CN",
+                        "source_type":  "contract",
+                        "topic":  "合同与入驻",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "all"
+                                  }
+                    },
+                    {
+                        "source_key":  "crossborder-contract-changes",
+                        "canonical_rule_key":  "legal.crossborder-contract-changes",
+                        "url":  "https://docs.ozon.com/global/en/contracts-for-sellers/spisok-izmenenii-v-dogovore/?country=CN",
+                        "source_type":  "contract",
+                        "topic":  "合同与入驻",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "all"
+                                  }
+                    },
+                    {
+                        "source_key":  "products-restricted-sale",
+                        "canonical_rule_key":  "product.restricted",
+                        "url":  "https://docs.ozon.com/global/en/products/requirements/export_regulations/?country=CN",
+                        "source_type":  "policy",
+                        "topic":  "禁限售与资质",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "all"
+                                  }
+                    },
+                    {
+                        "source_key":  "product-quality-certificates",
+                        "canonical_rule_key":  "product.quality-certificates",
+                        "url":  "https://docs.ozon.com/global/en/products/requirements/documents/quality-certificate/?country=CN",
+                        "source_type":  "specific_rule",
+                        "topic":  "禁限售与资质",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "all"
+                                  }
+                    },
+                    {
+                        "source_key":  "communication-rules",
+                        "canonical_rule_key":  "communication.clients",
+                        "url":  "https://docs.ozon.com/global/en/policies/communication/?country=CN",
+                        "source_type":  "policy",
+                        "topic":  "客户沟通",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "all"
+                                  }
+                    },
+                    {
+                        "source_key":  "ozon-fees-tariffs",
+                        "canonical_rule_key":  "finance.fees-tariffs",
+                        "url":  "https://docs.ozon.com/global/en/commissions/ozon-fees/?country=CN",
+                        "source_type":  "policy",
+                        "topic":  "费用与结算",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "all"
+                                  }
+                    },
+                    {
+                        "source_key":  "sales-fees",
+                        "canonical_rule_key":  "finance.sales-fees",
+                        "url":  "https://docs.ozon.com/global/en/commissions/ozon-fees/commissions/?country=CN",
+                        "source_type":  "specific_rule",
+                        "topic":  "费用与结算",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "all"
+                                  }
+                    },
+                    {
+                        "source_key":  "finance-settlements",
+                        "canonical_rule_key":  "finance.settlements",
+                        "url":  "https://docs.ozon.com/global/en/accounting/receiving-payments/settlements/?country=CN",
+                        "source_type":  "specific_rule",
+                        "topic":  "费用与结算",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "all"
+                                  }
+                    },
+                    {
+                        "source_key":  "blocking-reasons",
+                        "canonical_rule_key":  "enforcement.blocking",
+                        "url":  "https://docs.ozon.com/global/en/ratings/ban/?country=CN",
+                        "source_type":  "policy",
+                        "topic":  "绩效处罚",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "all"
+                                  }
+                    },
+                    {
+                        "source_key":  "realfbs-order-management",
+                        "canonical_rule_key":  "fulfillment.realfbs-order-management",
+                        "url":  "https://docs.ozon.com/global/en/fulfillment/rfbs/logistic-settings/order-management/?country=CN",
+                        "source_type":  "specific_rule",
+                        "topic":  "订单与履约",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "REALFBS"
+                                  }
+                    },
+                    {
+                        "source_key":  "realfbs-order-packaging",
+                        "canonical_rule_key":  "fulfillment.realfbs-packaging",
+                        "url":  "https://docs.ozon.com/global/en/fulfillment/rfbs/logistic-settings/order-packaging-requirements/?country=CN",
+                        "source_type":  "specific_rule",
+                        "topic":  "订单与履约",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "REALFBS"
+                                  }
+                    },
+                    {
+                        "source_key":  "realfbs-order-preparation-time",
+                        "canonical_rule_key":  "fulfillment.realfbs-preparation-time",
+                        "url":  "https://docs.ozon.com/global/en/fulfillment/rfbs/logistic-settings/packaging-time/?country=CN",
+                        "source_type":  "specific_rule",
+                        "topic":  "订单与履约",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "REALFBS"
+                                  }
+                    },
+                    {
+                        "source_key":  "realfbs-returns",
+                        "canonical_rule_key":  "aftersales.realfbs-returns",
+                        "url":  "https://docs.ozon.com/global/en/fulfillment/rfbs/refunds/?country=CN",
+                        "source_type":  "policy",
+                        "topic":  "退款退货",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "REALFBS"
+                                  }
+                    },
+                    {
+                        "source_key":  "realfbs-disputes",
+                        "canonical_rule_key":  "aftersales.realfbs-disputes",
+                        "url":  "https://docs.ozon.com/global/en/fulfillment/rfbs/refunds/deviation/?country=CN",
+                        "source_type":  "specific_rule",
+                        "topic":  "退款退货",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "REALFBS"
+                                  }
+                    },
+                    {
+                        "source_key":  "realfbs-refunds",
+                        "canonical_rule_key":  "aftersales.realfbs-refunds",
+                        "url":  "https://docs.ozon.com/global/en/fulfillment/rfbs/refunds/money/?country=CN",
+                        "source_type":  "specific_rule",
+                        "topic":  "退款退货",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "RU_CIS",
+                                      "seller_type":  "cross_border",
+                                      "fulfillment":  "REALFBS"
+                                  }
+                    }
+                ]
+}

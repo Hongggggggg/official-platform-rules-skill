@@ -1,0 +1,372 @@
+{
+    "schema_version":  2,
+    "platform":  "tiktok",
+    "display_name":  "TikTok Shop US",
+    "market":  "US",
+    "seller_origin":  "US",
+    "default_language":  "en",
+    "data_namespace":  "tiktok",
+    "official_domains":  [
+                             "seller-us.tiktok.com",
+                             "partner.tiktokshop.com",
+                             "ads.tiktok.com",
+                             "www.tiktok.com"
+                         ],
+    "freshness":  {
+                      "high_risk_hours":  24,
+                      "normal_hours":  168
+                  },
+    "scope_defaults":  {
+                           "market":  "US",
+                           "seller_origin":  "US",
+                           "actor_type":  "seller",
+                           "seller_type":  "seller",
+                           "fulfillment":  "unspecified"
+                       },
+    "sources":  [
+                    {
+                        "source_key":  "product-listing-policy",
+                        "canonical_rule_key":  "listing.product",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=3196690250417921\u0026lang=en",
+                        "source_type":  "policy",
+                        "topic":  "商品内容与上架",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "prohibited-products-policy",
+                        "canonical_rule_key":  "product.prohibited",
+                        "url":  "https://seller-us.tiktok.com/university/essay?anchor_link=10C3FFFD\u0026from=policy\u0026identity=1\u0026knowledge_id=1399532709988097\u0026role=1",
+                        "source_type":  "policy",
+                        "topic":  "禁限售",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "restricted-products-policy",
+                        "canonical_rule_key":  "product.restricted",
+                        "url":  "https://seller-us.tiktok.com/university/essay?default_language=en\u0026identity=1\u0026knowledge_id=3238037484275457",
+                        "source_type":  "policy",
+                        "topic":  "禁限售",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "seller-terms-us",
+                        "canonical_rule_key":  "legal.seller-terms",
+                        "url":  "https://seller-us.tiktok.com/university/essay?default_language=en\u0026identity=1\u0026knowledge_id=1331308753078058",
+                        "source_type":  "contract",
+                        "topic":  "合同与费用",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "seller-enforcement-policy",
+                        "canonical_rule_key":  "enforcement.seller",
+                        "url":  "https://seller-us.tiktok.com/university/essay?identity=1\u0026knowledge_id=2380042836166443\u0026role=1",
+                        "source_type":  "policy",
+                        "topic":  "处罚与申诉",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "fulfillment-policy",
+                        "canonical_rule_key":  "fulfillment.general",
+                        "url":  "https://seller-us.tiktok.com/university/essay?identity=1\u0026knowledge_id=3995852763301633",
+                        "source_type":  "policy",
+                        "topic":  "履约",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "returns-refunds-replacements",
+                        "canonical_rule_key":  "aftersales.returns-refunds",
+                        "url":  "https://seller-us.tiktok.com/university/essay?from=policy\u0026identity=1\u0026knowledge_id=984433248438058\u0026role=1",
+                        "source_type":  "policy",
+                        "topic":  "退款退货",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "creator-eligibility",
+                        "canonical_rule_key":  "creator.eligibility",
+                        "url":  "https://seller-us.tiktok.com/university/essay?identity=1\u0026knowledge_id=6939143037667118\u0026role=seller",
+                        "source_type":  "policy",
+                        "topic":  "达人与账号",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "advertising-policies",
+                        "canonical_rule_key":  "ads.general",
+                        "url":  "https://ads.tiktok.com/help/article/tiktok-advertising-policies?lang=en",
+                        "source_type":  "policy",
+                        "topic":  "广告",
+                        "risk":  "high"
+                    },
+                    {
+                        "topic":  "商品合规与加州65",
+                        "scope":  {
+                                      "fulfillment":  "all",
+                                      "market":  "US",
+                                      "seller_type":  "seller"
+                                  },
+                        "risk":  "high",
+                        "canonical_rule_key":  "compliance.prop65",
+                        "source_key":  "california-proposition-65",
+                        "source_type":  "specific_rule",
+                        "url":  "https://seller-us.tiktok.com/university/essay?default_language=en\u0026identity=1\u0026knowledge_id=2205898533881643"
+                    },
+                    {
+                        "topic":  "二手奢侈品与鞋类资质",
+                        "scope":  {
+                                      "fulfillment":  "all",
+                                      "market":  "US",
+                                      "seller_type":  "seller"
+                                  },
+                        "risk":  "high",
+                        "canonical_rule_key":  "compliance.pre-owned",
+                        "source_key":  "pre-owned-products",
+                        "source_type":  "specific_rule",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=7004721702192939"
+                    },
+                    {
+                        "topic":  "美国本土企业入驻",
+                        "scope":  {
+                                      "fulfillment":  "all",
+                                      "market":  "US",
+                                      "seller_type":  "US_LOCAL"
+                                  },
+                        "risk":  "high",
+                        "canonical_rule_key":  "onboarding.us-business",
+                        "source_key":  "seller-registration-corporation",
+                        "source_type":  "guide",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=7750756652844842"
+                    },
+                    {
+                        "source_key":  "content-policy",
+                        "canonical_rule_key":  "content.creator",
+                        "url":  "https://seller-us.tiktok.com/university/essay?from=policy\u0026identity=1\u0026knowledge_id=10013546\u0026role=1",
+                        "source_type":  "policy",
+                        "topic":  "内容与达人",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "US",
+                                      "seller_type":  "creator",
+                                      "fulfillment":  "all"
+                                  }
+                    },
+                    {
+                        "source_key":  "creator-enforcement-policy",
+                        "canonical_rule_key":  "enforcement.creator",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=6837869503317761",
+                        "source_type":  "policy",
+                        "topic":  "内容与达人",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "US",
+                                      "seller_type":  "creator",
+                                      "fulfillment":  "all"
+                                  }
+                    },
+                    {
+                        "source_key":  "creator-health-rating",
+                        "canonical_rule_key":  "creator.health-rating",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=5054301796321070",
+                        "source_type":  "specific_rule",
+                        "topic":  "内容与达人",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "US",
+                                      "seller_type":  "creator",
+                                      "fulfillment":  "all"
+                                  }
+                    },
+                    {
+                        "source_key":  "anti-counterfeit-policy",
+                        "canonical_rule_key":  "compliance.anti-counterfeit",
+                        "url":  "https://seller-us.tiktok.com/university/essay?identity=1\u0026knowledge_id=6837901778306818\u0026role=1",
+                        "source_type":  "policy",
+                        "topic":  "知识产权与假货",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "product-safety-compliance",
+                        "canonical_rule_key":  "compliance.product-safety",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=2021373132801838",
+                        "source_type":  "policy",
+                        "topic":  "商品安全与合规",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "product-recall-policy",
+                        "canonical_rule_key":  "compliance.product-recall",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=1439743821383425",
+                        "source_type":  "policy",
+                        "topic":  "商品召回",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "category-qualification-guide",
+                        "canonical_rule_key":  "product.category-qualification",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=1707918207813422",
+                        "source_type":  "guide",
+                        "topic":  "类目资质",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "product-quality-policy",
+                        "canonical_rule_key":  "product.quality",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=5203348292765486",
+                        "source_type":  "policy",
+                        "topic":  "商品质量",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "dangerous-goods-requirements",
+                        "canonical_rule_key":  "product.dangerous-goods",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=2297870046414638",
+                        "source_type":  "specific_rule",
+                        "topic":  "危险品",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "seller-identity-verification",
+                        "canonical_rule_key":  "onboarding.identity-verification",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=3309659860764430",
+                        "source_type":  "policy",
+                        "topic":  "入驻与身份核验",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "inform-consumers-act",
+                        "canonical_rule_key":  "compliance.inform-consumers-act",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=1411491405465390",
+                        "source_type":  "specific_rule",
+                        "topic":  "入驻与身份核验",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "account-health-rating",
+                        "canonical_rule_key":  "account.health-rating",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=6750828276418350",
+                        "source_type":  "specific_rule",
+                        "topic":  "店铺绩效",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "order-volume-limit",
+                        "canonical_rule_key":  "account.order-volume-limit",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=4069705271658253",
+                        "source_type":  "specific_rule",
+                        "topic":  "店铺绩效",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "customer-order-shipping",
+                        "canonical_rule_key":  "fulfillment.customer-order-shipping",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=6837879804970754",
+                        "source_type":  "policy",
+                        "topic":  "履约",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "seller-shipping",
+                        "canonical_rule_key":  "fulfillment.seller-shipping",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=8308896260065025",
+                        "source_type":  "specific_rule",
+                        "topic":  "履约",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "US",
+                                      "seller_type":  "seller",
+                                      "fulfillment":  "SELLER_SHIPPING"
+                                  }
+                    },
+                    {
+                        "source_key":  "custom-order-requirements",
+                        "canonical_rule_key":  "fulfillment.custom-order",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=6719693841286958",
+                        "source_type":  "specific_rule",
+                        "topic":  "履约",
+                        "risk":  "high",
+                        "scope":  {
+                                      "market":  "US",
+                                      "seller_type":  "seller",
+                                      "fulfillment":  "SELLER_SHIPPING"
+                                  }
+                    },
+                    {
+                        "source_key":  "fraudulent-order-prevention",
+                        "canonical_rule_key":  "orders.fraud-prevention",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=6288621670565674",
+                        "source_type":  "specific_rule",
+                        "topic":  "订单风控",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "valid-tracking-rate",
+                        "canonical_rule_key":  "performance.vtr",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=1274968588748558",
+                        "source_type":  "specific_rule",
+                        "topic":  "履约绩效",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "late-dispatch-rate",
+                        "canonical_rule_key":  "performance.ldr",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=3668989549299511",
+                        "source_type":  "specific_rule",
+                        "topic":  "履约绩效",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "on-time-delivery-rate",
+                        "canonical_rule_key":  "performance.otdr",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=7671875816589099",
+                        "source_type":  "specific_rule",
+                        "topic":  "履约绩效",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "seller-fault-cancellation-rate",
+                        "canonical_rule_key":  "performance.sfcr",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=7953001314830094",
+                        "source_type":  "specific_rule",
+                        "topic":  "履约绩效",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "non-buyer-fault-return-refund-rate",
+                        "canonical_rule_key":  "performance.nbfr",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=5914428974778167",
+                        "source_type":  "specific_rule",
+                        "topic":  "售后绩效",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "aftersales-handling-time",
+                        "canonical_rule_key":  "aftersales.handling-time",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=5513129770796813",
+                        "source_type":  "specific_rule",
+                        "topic":  "退款退货",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "aftersale-dispute-escalation",
+                        "canonical_rule_key":  "aftersales.dispute-escalation",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=3985068541478658",
+                        "source_type":  "specific_rule",
+                        "topic":  "退款退货",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "fair-pricing-policy",
+                        "canonical_rule_key":  "pricing.fair-pricing",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=8519326693148462",
+                        "source_type":  "policy",
+                        "topic":  "价格与促销",
+                        "risk":  "high"
+                    },
+                    {
+                        "source_key":  "reserve-policy",
+                        "canonical_rule_key":  "finance.reserve",
+                        "url":  "https://seller-us.tiktok.com/university/essay?knowledge_id=7122812746745646",
+                        "source_type":  "policy",
+                        "topic":  "结算与资金",
+                        "risk":  "high"
+                    }
+                ]
+}

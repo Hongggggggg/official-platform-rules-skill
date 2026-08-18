@@ -1,0 +1,7 @@
+interface:
+  display_name: "官方平台规则知识库"
+  short_description: "仅依据官方来源查询并跟踪 TikTok Shop 与 Ozon 规则"
+  default_prompt: "使用 $official-platform-rules 查询并核验一个平台规则问题。"
+
+policy:
+  allow_implicit_invocation: true

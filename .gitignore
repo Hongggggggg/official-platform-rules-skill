@@ -1,0 +1,18 @@
+**/__pycache__/
+*.py[cod]
+*.sqlite3
+*.sqlite3-*
+*.db
+.env
+.env.*
+!.env.example
+snapshots/
+tmp/
+
+# Local runtime artifacts and generated validation output
+**/data/
+**/imports/
+**/reports/
+**/validation/question-corpus-*.json
+**/validation/question-corpus-*.md
+**/.sandbox-root-acl-repair.ps1

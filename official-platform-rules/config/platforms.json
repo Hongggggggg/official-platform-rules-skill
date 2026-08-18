@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "platforms": {
+    "tiktok": {
+      "enabled": true,
+      "adapter": "tiktok.adapter:TikTokAdapter",
+      "config": "tiktok-us.json",
+      "data_namespace": "tiktok"
+    },
+    "ozon": {
+      "enabled": true,
+      "adapter": "ozon.adapter:OzonAdapter",
+      "config": "ozon-crossborder.json",
+      "data_namespace": "ozon"
+    },
+    "amazon": {
+      "enabled": false,
+      "adapter": null,
+      "config": null,
+      "data_namespace": "amazon"
+    },
+    "shein": {
+      "enabled": false,
+      "adapter": null,
+      "config": null,
+      "data_namespace": "shein"
+    }
+  }
+}

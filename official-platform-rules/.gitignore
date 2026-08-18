@@ -1,0 +1,7 @@
+data/**/*.sqlite3
+data/**/*.sqlite3-*
+data/**/snapshots/
+data/**/review/
+data/**/changes/
+**/__pycache__/
+*.pyc
